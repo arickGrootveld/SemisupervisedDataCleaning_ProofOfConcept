@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Stuff Arick added for this specific repo
+.vscode
+

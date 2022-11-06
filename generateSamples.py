@@ -8,6 +8,7 @@ def generateMixtureSamples(numSamples, dim, muVec1, muVec2, covMat1, covMat2, mi
         rng = np.random.default_rng()
 
     # Generate a bunch of bernoulli random variables to tell us which distribution to sample from
+    # a label of 1 means it came from dist 1, and a label of 0 means it came from dist 2
     sampleDecisions = rng.binomial(1, mixtureProb, numSamples)
 
     # Determining the number of samples from each distribution to make life easier later
@@ -30,11 +31,53 @@ def generateMixtureSamples(numSamples, dim, muVec1, muVec2, covMat1, covMat2, mi
     return((sampleDecisions, mixtureSamples))
 
 
+def generateSampleset(numSamplesMix, numSamplesF1, numDims, **kwargs):
+    # function generateSampleset(numSamplesMix, numSamplesF1, numDims, **kwargs)
+    # 
+    # numSamplesMix: number of samples to generate from the mixture distribution
+    # numSamplesF1: number of samples to generate from F1's distribution
+    # numDims: The number of feature dimensions in the generated samples
+    # Acceptable **kwargs arguments:
+    #   covarF1 [eye(n)]: Covariance matrix of distribution F1
+    #   covarF2 [eye(n)]: Covariance matrix of distribution F2
+    #   muF1 [zeros(1,n)]: Mean vector of dist. F1
+    #   muF2 [zeros(1,n)]: Mean vector of dist. F2 
+    #   seed [-1]: The seed of the random number generator
+    #   mixtureProb [0.5]: The probability of a sample coming from
+    #                      F1 in the mixture distribution
+
+    # Defaulting the kwargs arguments
+    defaultArgs = {'covarF2': np.eye(numDims), 'covarF1': np.eye(numDims),
+                    'muF1': np.zeros((1,numDims)), 'muF2': np.zeros((1, numDims)),
+                    'seed': -1, 'mixtureProb': 0.5}
+    
+    # Taking default arguments if kwargs are not provided
+    functionArgs = {**defaultArgs, **kwargs}
+
+    # Setting up stuff based on the parameters passed
+    if(functionArgs['seed'] > 0):
+        # If the seed is a valid seed (1 or greater), then we use it for the rng
+        rng = np.random.default_rng(functionArgs['seed'])
+    else:
+        # Otherwise we just use a random seed
+        rng = np.random.default_rng()
+    
+
+    # Generating the samples and labels from F1's distribution
+    F1Samples = rng.multivariate_normal(functionArgs['muF1'], functionArgs['covarF1'], numSamplesF1)
+    F1Labels = np.ones((numSamplesF1,))
+
+    # Generating the mixture samples and labels
+    [mixtureLabels, mixtureSamples] = generateMixtureSamples(numSamples=numSamplesMix, dim=numDims, muVec1=functionArgs['muF1'], 
+                                            muVec2=functionArgs['muF2'], covMat1=functionArgs['covarF1'], covMat2=functionArgs['covarF2'], 
+                                            mixtureProb=functionArgs['mixtureProb'], seed=functionArgs['seed'])
+    return(F1Samples, F1Labels, mixtureSamples, mixtureLabels)
+
 if(__name__ == '__main__'):
     ## Code for testing purposes
     # Parameters of the simulation
     numSamples = 10
-    numDims = 10
+    numDims = 2
 
     # Parameters of the distributions
     var1 = 1
@@ -42,6 +85,10 @@ if(__name__ == '__main__'):
 
     mu1 = 100
     mu2 = 0
+
+    # Parameters of the simulation
+    mixProb = 0.5
+    rngSeed=10
     
     # Generating the diagonal covariance matrices
     covMat1 = var1 * np.eye(numDims)
@@ -51,7 +98,20 @@ if(__name__ == '__main__'):
     muVec1 = mu1 * np.ones((numDims,))
     muVec2 = mu2 * np.ones((numDims,))
 
-    [labels, samples] = generateMixtureSamples(numSamples, numDims, muVec1, muVec2, covMat1, covMat2, seed=2)
-    print(samples)
-    print(labels)
-    
+    # [labels, samples] = generateMixtureSamples(numSamples, numDims, muVec1, muVec2, covMat1, covMat2, mixtureProb=mixProb, seed=rngSeed)
+    # print(samples)
+    # print(labels)
+
+    # print()
+
+    [F1Samples, F1Labels, mixSamples, mixLabels] = generateSampleset(numSamples, numSamples, numDims=numDims, covarF1=covMat1, covarF2=covMat2, 
+                                                                      muF1=muVec1, muF2=muVec2, seed=rngSeed, mixtureProb=mixProb)
+    print(F1Samples)
+    print(F1Labels)
+    print()
+    print(mixSamples)
+    print(mixLabels)
+
+
+
+
